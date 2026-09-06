@@ -50,6 +50,7 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'routes' | 'tracking' | 'tickets'>('overview');
   const [selectedCategory, setSelectedCategory] = useState<RouteCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
 
   const filteredRoutes = routes.filter((route) => {
     const matchesCategory =
@@ -64,6 +65,31 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
   });
 
   const upcomingTickets = tickets.filter((t) => t.bookingType === 'Upcoming');
+
+  const metricDetails: Record<string, { title: string; summary: string; items: string[] }> = {
+    routes: {
+      title: 'Available routes',
+      summary: `${routes.length} routes are loaded for Fall 2026.`,
+      items: routes.slice(0, 5).map((route) => `${route.routeNo}: ${route.name} - ${route.availableSeats} seats available`),
+    },
+    buses: {
+      title: 'Buses currently on road',
+      summary: 'GPS-tracked buses are available for live monitoring.',
+      items: routes
+        .flatMap((route) => route.activeBuses.map((bus) => `${bus} - ${route.name}`))
+        .slice(0, 8),
+    },
+    loop: {
+      title: 'Campus loop availability',
+      summary: 'The DIU Campus Loop connects Main Campus and DSC.',
+      items: ['Frequency: Every 15 min', 'Next departure: 09:30 AM', 'Available seats: 14', 'Stops: Main Campus, DSC Main Gate, Permanent Campus'],
+    },
+    friday: {
+      title: 'Jummah special availability',
+      summary: 'Friday-only buses are scheduled for student transit.',
+      items: ['Morning departure: 7:30 AM', 'Return departure: 2:20 PM', 'Category: Friday Schedule', 'Seat booking is available from Book Seat Pass'],
+    },
+  };
 
   return (
     <div className="w-full min-h-screen bg-slate-900 text-slate-100 flex flex-col">
@@ -231,38 +257,55 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
         <main className="flex-1 space-y-6">
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+            <button type="button" onClick={() => setSelectedMetric('routes')} className="text-left bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-blue-500/70 transition-colors space-y-1 cursor-pointer">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Total Routes
               </span>
               <div className="text-2xl font-black text-white">21 Routes</div>
               <span className="text-[10px] text-blue-400">10 Regular + 6 Shuttle + 5 Friday</span>
-            </div>
+            </button>
 
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+            <button type="button" onClick={() => setSelectedMetric('buses')} className="text-left bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/70 transition-colors space-y-1 cursor-pointer">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Buses On Road
               </span>
               <div className="text-2xl font-black text-emerald-400">14 Live</div>
               <span className="text-[10px] text-slate-400">GPS Tracked Fleet</span>
-            </div>
+            </button>
 
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+            <button type="button" onClick={() => setSelectedMetric('loop')} className="text-left bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-blue-500/70 transition-colors space-y-1 cursor-pointer">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Campus Loop
               </span>
               <div className="text-2xl font-black text-blue-400">Every 15 min</div>
               <span className="text-[10px] text-slate-400">Main Campus ➔ DSC</span>
-            </div>
+            </button>
 
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+            <button type="button" onClick={() => setSelectedMetric('friday')} className="text-left bg-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-indigo-500/70 transition-colors space-y-1 cursor-pointer">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Jummah Special
               </span>
               <div className="text-2xl font-black text-indigo-400">Friday Buses</div>
               <span className="text-[10px] text-slate-400">7:30 AM & 2:20 PM</span>
-            </div>
+            </button>
           </div>
+
+          {selectedMetric && (
+            <section className="bg-slate-950 p-5 rounded-2xl border border-blue-500/40 space-y-3" aria-live="polite">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-extrabold text-white">{metricDetails[selectedMetric].title}</h3>
+                  <p className="text-xs text-slate-400 mt-1">{metricDetails[selectedMetric].summary}</p>
+                </div>
+                <button type="button" onClick={() => setSelectedMetric(null)} className="text-xs font-bold text-slate-400 hover:text-white cursor-pointer">Close</button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {metricDetails[selectedMetric].items.map((item) => (
+                  <div key={item} className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-xs text-slate-200">{item}</div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Active Tab Content */}
           {activeTab === 'overview' && (

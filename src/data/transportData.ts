@@ -2,13 +2,13 @@ import { BusRoute, BusTracking, Ticket, TransportNotice, UserProfile } from '../
 
 export const INITIAL_USER: UserProfile = {
   id: 'usr_26240017',
-  studentId: '262-40-017',
-  name: 'Ishrat Jahan Ahona',
-  email: 'ahona.mct@diu.edu.bd',
+  studentId: '251-15-863',
+  name: 'Md.Tanbirul Arefin',
+  email: 'tanbirul.arefin@diu.edu.bd',
   department: 'Department of MCT',
   campus: 'Daffodil Smart City (DSC)',
   phone: '+880 1712-345678',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  avatarUrl: '/assets/tanbirul-cartoon-avatar.svg',
   semester: 'Fall 2026',
   transportFeeStatus: 'Paid',
   preferredRoute: 'DIU Campus Loop',
