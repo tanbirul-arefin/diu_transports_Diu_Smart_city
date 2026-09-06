@@ -91,6 +91,17 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
     },
   };
 
+  const handleRouteAvailabilityClick = (route: BusRoute) => {
+    setSelectedMetric(null);
+    if (route.status === 'Active') {
+      onOpenBookingModal(route);
+      return;
+    }
+
+    setSearchQuery(route.routeNo);
+    setActiveTab('routes');
+  };
+
   return (
     <div className="w-full min-h-screen bg-slate-900 text-slate-100 flex flex-col">
       {/* Top University Portal Header */}
@@ -116,15 +127,6 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
 
         {/* Portal Action Buttons */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onOpenSpringBootModal}
-            className="px-3.5 py-2 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <span>Spring Boot Architecture</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </button>
-
           <button
             type="button"
             onClick={onOpenScheduleModal}
@@ -300,9 +302,40 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
                 <button type="button" onClick={() => setSelectedMetric(null)} className="text-xs font-bold text-slate-400 hover:text-white cursor-pointer">Close</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {metricDetails[selectedMetric].items.map((item) => (
-                  <div key={item} className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-xs text-slate-200">{item}</div>
-                ))}
+                {selectedMetric === 'routes'
+                  ? routes.slice(0, 5).map((route) => (
+                      <button
+                        key={route.id}
+                        type="button"
+                        onClick={() => handleRouteAvailabilityClick(route)}
+                        className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-left text-xs text-slate-200 hover:border-blue-500 hover:bg-slate-800 transition-colors cursor-pointer"
+                      >
+                        {route.routeNo}: {route.name} - {route.availableSeats} seats available
+                        <span className="block text-[10px] text-blue-400 mt-1">
+                          {route.status === 'Active' ? 'Click to book a seat' : 'Click to view route status'}
+                        </span>
+                      </button>
+                    ))
+                  : metricDetails[selectedMetric].items.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => {
+                          if (selectedMetric === 'buses' || selectedMetric === 'loop') {
+                            setSelectedMetric(null);
+                            setActiveTab('tracking');
+                          } else if (selectedMetric === 'friday') {
+                            onOpenScheduleModal();
+                          }
+                        }}
+                        className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-left text-xs text-slate-200 hover:border-blue-500 hover:bg-slate-800 transition-colors cursor-pointer"
+                      >
+                        {item}
+                        <span className="block text-[10px] text-blue-400 mt-1">
+                          {selectedMetric === 'friday' ? 'Click to open full schedule' : 'Click to open live tracking'}
+                        </span>
+                      </button>
+                    ))}
               </div>
             </section>
           )}
