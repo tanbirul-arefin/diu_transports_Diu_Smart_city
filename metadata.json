@@ -1,6 +1,5 @@
 {
   "name": "DIU Transports - Daffodil Smart City",
   "description": "Official transport management, live bus tracking, schedule, and digital pass app for Daffodil International University (DSC).",
-  "requestFramePermissions": ["geolocation"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "requestFramePermissions": ["geolocation"]
 }
