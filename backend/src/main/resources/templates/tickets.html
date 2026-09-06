@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>My DIU Tickets</title>
+<style>body{margin:0;font-family:Arial,sans-serif;background:#0f172a;color:#e2e8f0}main{max-width:900px;margin:auto;padding:32px 20px}a{color:#93c5fd;margin-right:14px;text-decoration:none}.ticket{background:#020617;border:1px solid #1e293b;border-radius:14px;padding:18px;margin-top:14px}.muted{color:#94a3b8}</style></head>
+<body><main><nav><a href="/th/schedule">Schedule</a><a href="/th/tickets">My Tickets</a><a href="http://localhost:3000">React Portal</a></nav>
+<h1 th:text="${studentName} + ' - Digital Passes'">Md.Tanbirul Arefin - Digital Passes</h1><p class="muted">DIU ID: <span th:text="${studentId}">251-15-863</span></p>
+<div th:if="${#lists.isEmpty(tickets)}" class="ticket">No tickets found for this student.</div>
+<div th:each="ticket : ${tickets}" class="ticket"><h2 th:text="${ticket.routeName}">DIU Campus Loop</h2><p>Booking: <strong th:text="${ticket.bookingId}">DIUT12345678</strong></p><p>Seat <strong th:text="${ticket.seatNumber}">12</strong> · <span th:text="${ticket.departureTime}">09:30 AM</span></p><p class="muted" th:text="${ticket.pickupStop + ' -> ' + ticket.destinationStop}">DIU Main Campus -> DSC</p></div>
+</main></body></html>

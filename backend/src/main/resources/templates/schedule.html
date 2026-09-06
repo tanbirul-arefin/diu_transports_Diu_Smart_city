@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title}">DIU Transport Schedule</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
+        main { max-width: 1180px; margin: 0 auto; padding: 32px 20px; }
+        h1 { margin-bottom: 4px; color: #fff; } p { color: #94a3b8; }
+        nav a { color: #93c5fd; margin-right: 14px; text-decoration: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 24px; background: #020617; }
+        th, td { padding: 14px; border-bottom: 1px solid #1e293b; text-align: left; vertical-align: top; }
+        th { color: #93c5fd; } .pill { display: inline-block; padding: 4px 8px; margin: 2px; border-radius: 12px; background: #1e3a8a; font-size: 12px; }
+        .active { color: #6ee7b7; }
+    </style>
+</head>
+<body><main>
+    <nav><a href="/th/schedule">Schedule</a><a href="/th/tickets">My Tickets</a><a href="http://localhost:3000">React Portal</a></nav>
+    <h1>Daffodil International University Transport</h1>
+    <p>Fall 2026 schedule at Daffodil Smart City. Filter: <strong th:text="${selectedCategory}">All</strong></p>
+    <table><thead><tr><th>Route</th><th>Route Name</th><th>To DSC</th><th>From DSC</th><th>Stops</th><th>Status</th></tr></thead>
+        <tbody><tr th:each="route : ${routes}"><td th:text="${route.routeNo}">R1</td><td th:text="${route.name}">DIU - Dhanmondi</td>
+            <td><span class="pill" th:each="time : ${route.startTimesToDsc}" th:text="${time}">07:00 AM</span></td>
+            <td><span class="pill" th:each="time : ${route.departureTimesFromDsc}" th:text="${time}">04:20 PM</span></td>
+            <td><span th:each="stop, iter : ${route.stops}"><span th:text="${stop}">Stop</span><span th:if="${!iter.last}"> -> </span></span></td><td class="active" th:text="${route.status}">Active</td>
+        </tr></tbody>
+    </table>
+</main></body></html>

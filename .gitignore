@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Spring Boot build output and local H2 database
+backend/target/
+backend/data/
