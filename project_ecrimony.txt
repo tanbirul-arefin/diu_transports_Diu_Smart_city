@@ -1,0 +1,47 @@
+http://localhost:8080|api/v1/transport|localhost:3000
+
+এই প্রজেক্টে মূলত নিচের প্রযুক্তিগুলো ব্যবহার করা হয়েছে:
+
+Frontend
+
+React 19
+TypeScript
+Vite
+Tailwind CSS
+Lucide React icons
+Motion animation library
+Responsive mobile app ও web portal interface
+Local React state দিয়ে login, booking, ticket, tracking পরিচালনা
+Backend
+
+Java 17
+Spring Boot 3.5.6
+Spring Web / REST API
+Spring Data JPA
+Thymeleaf server-side pages
+Jakarta Validation
+Maven
+Database
+
+H2 Database
+File-based database configuration করা আছে
+Bus route ও ticket data JPA repository দিয়ে সংরক্ষণ করা হয়
+প্রধান ফিচার
+
+DIU bus route ও schedule দেখা
+Live bus tracking simulation
+Bus seat booking
+Student ticket/pass management
+QR ticket verification
+Login screen
+Notices ও Fall 2026 schedule
+React mobile app view এবং desktop web portal view
+Thymeleaf schedule ও ticket pages
+Backend API উদাহরণ
+
+GET /api/v1/transport/routes
+GET /api/v1/transport/tracking/live
+POST /api/v1/transport/tickets/book
+GET /api/v1/transport/tickets/student/{studentId}
+POST /api/v1/transport/tickets/verify-qr
+Frontend-এর dependency তালিকা package.json, আর backend-এর technology configuration pom.xml-এ আছে। উল্লেখ্য, live tracking বর্তমানে বাস্তব GPS নয়, React-এর timer দিয়ে simulation করা হয়েছে।

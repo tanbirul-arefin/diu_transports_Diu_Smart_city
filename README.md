@@ -12,12 +12,12 @@ Official transport management, live bus tracking, schedule, and digital pass app
 
 ## Spring Boot Backend
 
-The full Java backend is in `backend/` and uses Spring Boot, Spring Data JPA, H2, REST, and Thymeleaf.
+The Java backend in `backend/` uses Java 21, Spring Boot 4.1.1, Spring Data JPA, H2, REST, and Thymeleaf. The source is already split into conventional `model`, `repository`, `service`, `controller`, `dto`, `config`, and `exception` packages.
 
-1. Build the backend from `backend/` with `mvn clean package`.
-2. Run it with `java -jar target/diu-transport-backend-1.0.0.jar`.
+1. Install a JDK 21 distribution and make sure `java -version` reports version 21.
+2. From `backend/`, run `.\mvnw.cmd spring-boot:run` in PowerShell, or double-click `backend/start.bat`.
 3. REST API: http://localhost:8080/api/v1/transport/routes
 4. Thymeleaf schedule: http://localhost:8080/th/schedule
 5. Thymeleaf tickets: http://localhost:8080/th/tickets?studentId=251-15-863
 
-The React frontend remains at http://localhost:3000 and is configured for API calls from that origin.
+For the React frontend, in a second terminal at the repository root run `npm install` once, then `npm run dev`; open http://localhost:3000. The backend and frontend run separately. The API also has the H2 console at http://localhost:8080/h2-console (JDBC URL: `jdbc:h2:file:./data/diu-transport`).

@@ -51,6 +51,45 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<RouteCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
+  const [selectedTrackingBus, setSelectedTrackingBus] = useState(tracking.busNumber);
+
+  const availableBuses = routes.flatMap((route) =>
+    route.status === 'Active'
+      ? route.activeBuses.map((busNumber) => ({ busNumber, route }))
+      : []
+  );
+  const selectedBus = availableBuses.find((bus) => bus.busNumber === selectedTrackingBus)
+    ?? availableBuses.find((bus) => bus.busNumber === tracking.busNumber)
+    ?? availableBuses[0];
+  const selectedBusIndex = selectedBus
+    ? availableBuses.findIndex((bus) => bus.busNumber === selectedBus.busNumber)
+    : -1;
+  const hasLiveTracking = selectedBus?.busNumber === tracking.busNumber;
+  const progressPercentage = hasLiveTracking
+    ? tracking.progressPercentage
+    : 12 + (Math.max(selectedBusIndex, 0) * 17) % 75;
+  const currentCoordIndex = hasLiveTracking
+    ? tracking.currentCoordIndex
+    : Math.round((progressPercentage / 100) * (tracking.coordinates.length - 1));
+  const currentStopIndex = hasLiveTracking
+    ? tracking.currentStopIndex
+    : Math.min(
+        Math.floor((progressPercentage / 100) * (selectedBus?.route.stops.length ?? 1)),
+        (selectedBus?.route.stops.length ?? 1) - 1
+      );
+  const currentLocation = selectedBus?.route.stops[currentStopIndex] ?? 'Location unavailable';
+  const currentSpeed = hasLiveTracking
+    ? tracking.currentSpeedKm
+    : 25 + (Math.max(selectedBusIndex, 0) * 7) % 16;
+  const currentStatus = hasLiveTracking ? tracking.status : 'Scheduled';
+  const destinationEta = hasLiveTracking
+    ? tracking.nextStopEtaMinutes
+    : Math.max(2, Math.ceil((100 - progressPercentage) / 10));
+  const occupiedSeats = selectedBus
+    ? selectedBus.route.totalSeats - selectedBus.route.availableSeats
+    : tracking.occupiedSeats;
+  const driverName = hasLiveTracking ? tracking.driverName : 'Driver details unavailable';
+  const driverPhone = hasLiveTracking ? tracking.driverPhone : 'Not provided';
 
   const filteredRoutes = routes.filter((route) => {
     const matchesCategory =
@@ -590,16 +629,47 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-extrabold text-white">
-                    Live Satellite Bus Tracking Console
+                    Bus Tracking Console
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Route: {tracking.routeName} (Bus #{tracking.busNumber})
+                    Route: {selectedBus?.route.name ?? tracking.routeName} (Bus #{selectedBus?.busNumber ?? tracking.busNumber})
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-800/50">
-                    SPEED: {tracking.currentSpeedKm} KM/H
+                  <span className="text-[10px] font-bold text-amber-300 bg-amber-950/60 px-2.5 py-1.5 rounded-xl border border-amber-800/50">
+                    DEMO GPS
                   </span>
+                  <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-800/50">
+                    SPEED: {currentSpeed} KM/H
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-xs font-bold text-slate-300">Available buses</h4>
+                  <span className="text-[10px] text-slate-500">{availableBuses.length} buses • select to track</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-1">
+                  {availableBuses.map(({ busNumber, route }) => (
+                    <button
+                      key={busNumber}
+                      type="button"
+                      aria-pressed={selectedBus?.busNumber === busNumber}
+                      onClick={() => setSelectedTrackingBus(busNumber)}
+                      className={`min-w-0 p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                        selectedBus?.busNumber === busNumber
+                          ? 'bg-blue-600/20 border-blue-500 text-white'
+                          : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-600'
+                      }`}
+                    >
+                      <span className="block text-[11px] font-bold truncate">{busNumber}</span>
+                      <span className="block text-[10px] text-slate-400 truncate">{route.routeNo} • {route.name}</span>
+                    </button>
+                  ))}
+                  {availableBuses.length === 0 && (
+                    <p className="col-span-full text-xs text-slate-400">No active buses are currently listed.</p>
+                  )}
                 </div>
               </div>
 
@@ -639,7 +709,7 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
                     strokeWidth="4"
                     strokeLinecap="round"
                     strokeDasharray="100"
-                    strokeDashoffset={`${100 - tracking.progressPercentage}`}
+                    strokeDashoffset={`${100 - progressPercentage}`}
                   />
 
                   {/* Stops */}
@@ -665,8 +735,8 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
 
                   {/* Bus marker */}
                   <g
-                    transform={`translate(${tracking.coordinates[tracking.currentCoordIndex]?.x || 50}, ${
-                      tracking.coordinates[tracking.currentCoordIndex]?.y || 50
+                    transform={`translate(${tracking.coordinates[currentCoordIndex]?.x || 50}, ${
+                      tracking.coordinates[currentCoordIndex]?.y || 50
                     })`}
                     className="transition-transform duration-700 ease-out"
                   >
@@ -676,22 +746,27 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
                 </svg>
               </div>
 
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5">
+                <span className="text-slate-400">Estimated location: <strong className="text-white">{currentLocation}</strong></span>
+                <span className="text-amber-300">Demo position; live GPS feed is not connected</span>
+              </div>
+
               {/* Driver & Timeline details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                 <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                   <div className="text-slate-400 font-bold uppercase text-[10px]">Driver</div>
-                  <div className="font-bold text-white mt-0.5">{tracking.driverName}</div>
-                  <div className="font-mono text-blue-400 mt-0.5">{tracking.driverPhone}</div>
+                  <div className="font-bold text-white mt-0.5">{driverName}</div>
+                  <div className="font-mono text-blue-400 mt-0.5">{driverPhone}</div>
                 </div>
                 <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                   <div className="text-slate-400 font-bold uppercase text-[10px]">Current Status</div>
-                  <div className="font-bold text-emerald-400 mt-0.5">{tracking.status}</div>
-                  <div className="text-slate-400 mt-0.5">{tracking.occupiedSeats}/{tracking.totalSeats} seats taken</div>
+                  <div className="font-bold text-emerald-400 mt-0.5">{currentStatus}</div>
+                  <div className="text-slate-400 mt-0.5">{occupiedSeats}/{selectedBus?.route.totalSeats ?? tracking.totalSeats} seats taken</div>
                 </div>
                 <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
                   <div className="text-slate-400 font-bold uppercase text-[10px]">Destination ETA</div>
-                  <div className="font-bold text-blue-400 mt-0.5">{tracking.nextStopEtaMinutes} Minutes</div>
-                  <div className="text-slate-400 mt-0.5">Arriving at Daffodil Smart City</div>
+                  <div className="font-bold text-blue-400 mt-0.5">{destinationEta} Minutes</div>
+                  <div className="text-slate-400 mt-0.5">Arriving at {selectedBus?.route.destination ?? 'destination unavailable'}</div>
                 </div>
               </div>
             </div>
