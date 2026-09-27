@@ -19,12 +19,13 @@ import {
 } from 'lucide-react';
 import { BusRoute, BusTracking, Ticket, TransportNotice, UserProfile, RouteCategory } from '../types';
 import { QRCodeView } from './QRCodeView';
+import { buildBusTracking, getAvailableBuses } from '../data/busTracking';
 
 interface WebPortalViewProps {
   user: UserProfile;
   routes: BusRoute[];
   tracking: BusTracking;
-  tickets: Ticket[];
+  currentPasses: Ticket[];
   notices: TransportNotice[];
   onOpenBookingModal: (route?: BusRoute) => void;
   onOpenScheduleModal: () => void;
@@ -38,7 +39,7 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
   user,
   routes,
   tracking,
-  tickets,
+  currentPasses,
   notices,
   onOpenBookingModal,
   onOpenScheduleModal,
@@ -51,45 +52,25 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<RouteCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
-  const [selectedTrackingBus, setSelectedTrackingBus] = useState(tracking.busNumber);
-
-  const availableBuses = routes.flatMap((route) =>
-    route.status === 'Active'
-      ? route.activeBuses.map((busNumber) => ({ busNumber, route }))
-      : []
-  );
-  const selectedBus = availableBuses.find((bus) => bus.busNumber === selectedTrackingBus)
-    ?? availableBuses.find((bus) => bus.busNumber === tracking.busNumber)
+  const availableBuses = getAvailableBuses(routes);
+  const selectedBus = availableBuses.find((bus) => bus.busNumber === tracking.busNumber)
     ?? availableBuses[0];
   const selectedBusIndex = selectedBus
     ? availableBuses.findIndex((bus) => bus.busNumber === selectedBus.busNumber)
     : -1;
-  const hasLiveTracking = selectedBus?.busNumber === tracking.busNumber;
-  const progressPercentage = hasLiveTracking
-    ? tracking.progressPercentage
-    : 12 + (Math.max(selectedBusIndex, 0) * 17) % 75;
-  const currentCoordIndex = hasLiveTracking
-    ? tracking.currentCoordIndex
-    : Math.round((progressPercentage / 100) * (tracking.coordinates.length - 1));
-  const currentStopIndex = hasLiveTracking
-    ? tracking.currentStopIndex
-    : Math.min(
-        Math.floor((progressPercentage / 100) * (selectedBus?.route.stops.length ?? 1)),
-        (selectedBus?.route.stops.length ?? 1) - 1
-      );
-  const currentLocation = selectedBus?.route.stops[currentStopIndex] ?? 'Location unavailable';
-  const currentSpeed = hasLiveTracking
-    ? tracking.currentSpeedKm
-    : 25 + (Math.max(selectedBusIndex, 0) * 7) % 16;
-  const currentStatus = hasLiveTracking ? tracking.status : 'Scheduled';
-  const destinationEta = hasLiveTracking
-    ? tracking.nextStopEtaMinutes
-    : Math.max(2, Math.ceil((100 - progressPercentage) / 10));
-  const occupiedSeats = selectedBus
-    ? selectedBus.route.totalSeats - selectedBus.route.availableSeats
-    : tracking.occupiedSeats;
-  const driverName = hasLiveTracking ? tracking.driverName : 'Driver details unavailable';
-  const driverPhone = hasLiveTracking ? tracking.driverPhone : 'Not provided';
+  const selectedTracking = selectedBus
+    ? buildBusTracking(selectedBus, tracking, selectedBusIndex)
+    : tracking;
+  const progressPercentage = selectedTracking.progressPercentage;
+  const currentCoordIndex = selectedTracking.currentCoordIndex;
+  const currentLocation = selectedTracking.stops[selectedTracking.currentStopIndex]?.name
+    ?? 'Location unavailable';
+  const currentSpeed = selectedTracking.currentSpeedKm;
+  const currentStatus = selectedTracking.status;
+  const destinationEta = selectedTracking.nextStopEtaMinutes;
+  const occupiedSeats = selectedTracking.occupiedSeats;
+  const driverName = selectedTracking.driverName;
+  const driverPhone = selectedTracking.driverPhone;
 
   const filteredRoutes = routes.filter((route) => {
     const matchesCategory =
@@ -102,8 +83,6 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
         route.stops.some((s) => s.toLowerCase().includes(q)))
     );
   });
-
-  const upcomingTickets = tickets.filter((t) => t.bookingType === 'Upcoming');
 
   const metricDetails: Record<string, { title: string; summary: string; items: string[] }> = {
     routes: {
@@ -254,7 +233,7 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
               }`}
             >
               <TicketIcon className="w-4 h-4" />
-              <span>My Passes ({upcomingTickets.length})</span>
+              <span>My Passes ({currentPasses.length})</span>
             </button>
           </div>
 
@@ -449,25 +428,25 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
                       <span className="text-xs font-bold text-emerald-400">Fall 2026</span>
                     </div>
 
-                    {upcomingTickets.length > 0 ? (
+                    {currentPasses.length > 0 ? (
                       <div className="space-y-3">
                         <div>
                           <h4 className="text-base font-extrabold text-white">
-                            {upcomingTickets[0].routeName}
+                            {currentPasses[0].routeName}
                           </h4>
                           <p className="text-xs text-blue-300 font-semibold">
-                            Seat #{upcomingTickets[0].seatNumber} • Bus {upcomingTickets[0].busNumber}
+                            Seat #{currentPasses[0].seatNumber} • Bus {currentPasses[0].busNumber}
                           </p>
                         </div>
                         <div className="flex justify-center py-2">
-                          <QRCodeView data={upcomingTickets[0].qrData} size={110} />
+                          <QRCodeView data={currentPasses[0].qrData} size={110} />
                         </div>
                         <div className="text-[10px] font-mono text-center text-slate-400">
-                          Booking ID: {upcomingTickets[0].bookingId}
+                          Booking ID: {currentPasses[0].bookingId}
                         </div>
                         <button
                           type="button"
-                          onClick={() => onViewTicket(upcomingTickets[0])}
+                          onClick={() => onViewTicket(currentPasses[0])}
                           className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
                         >
                           View Full Boarding Pass
@@ -656,7 +635,11 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
                       key={busNumber}
                       type="button"
                       aria-pressed={selectedBus?.busNumber === busNumber}
-                      onClick={() => setSelectedTrackingBus(busNumber)}
+                      onClick={() => onUpdateTracking(buildBusTracking(
+                        { busNumber, route },
+                        tracking,
+                        availableBuses.findIndex((bus) => bus.busNumber === busNumber)
+                      ))}
                       className={`min-w-0 p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
                         selectedBus?.busNumber === busNumber
                           ? 'bg-blue-600/20 border-blue-500 text-white'
@@ -776,7 +759,7 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
           {activeTab === 'tickets' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-extrabold text-white">Student Transit Passes</h3>
+                <h3 className="text-base font-extrabold text-white">Current Student Passes</h3>
                 <button
                   type="button"
                   onClick={() => onOpenBookingModal()}
@@ -787,7 +770,7 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {tickets.map((ticket) => (
+                {currentPasses.map((ticket) => (
                   <div
                     key={ticket.id}
                     className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3"
@@ -827,6 +810,9 @@ export const WebPortalView: React.FC<WebPortalViewProps> = ({
                   </div>
                 ))}
               </div>
+              {currentPasses.length === 0 && (
+                <p className="py-10 text-center text-sm text-slate-400">No current passes.</p>
+              )}
             </div>
           )}
         </main>

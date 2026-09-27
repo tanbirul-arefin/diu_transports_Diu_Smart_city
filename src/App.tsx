@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Smartphone,
   Monitor,
@@ -34,14 +34,17 @@ import { SeatBookingModal } from './components/SeatBookingModal';
 import { ScheduleTableModal } from './components/ScheduleTableModal';
 import { NoticesModal } from './components/NoticesModal';
 import { SpringBootModal } from './components/SpringBootModal';
+import { useCurrentPasses } from './hooks/useCurrentPasses';
 
 export default function App() {
   // Application Data States
   const [user, setUser] = useState<UserProfile>(INITIAL_USER);
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [routes, setRoutes] = useState<BusRoute[]>(DIU_ROUTES);
   const [tracking, setTracking] = useState<BusTracking>(INITIAL_TRACKING);
   const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+  const currentPasses = useCurrentPasses(tickets);
   const [notices, setNotices] = useState<TransportNotice[]>(TRANSPORT_NOTICES);
 
   // Dual View Mode: 'mobile' (App mockup matching photos) | 'web' (Full desktop website)
@@ -58,6 +61,35 @@ export default function App() {
   const [isNoticesOpen, setIsNoticesOpen] = useState(false);
   const [isSpringBootOpen, setIsSpringBootOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/v1/auth/me')
+      .then(async (response) => {
+        if (response.ok) {
+          const profile = await response.json() as UserProfile;
+          setUser({ ...profile, avatarUrl: profile.avatarUrl || INITIAL_USER.avatarUrl });
+          setIsLoggedIn(true);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => setIsCheckingSession(false));
+  }, []);
+
+  const handleLoginSuccess = (loggedInUser: UserProfile) => {
+    setUser({ ...loggedInUser, avatarUrl: loggedInUser.avatarUrl || INITIAL_USER.avatarUrl });
+    setIsLoggedIn(true);
+    setMobileTab('home');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/v1/auth/logout', { method: 'POST' });
+    } catch {
+      // Clear the local view even if the session endpoint is unavailable.
+    }
+    setIsLoggedIn(false);
+    setMobileTab('home');
+  };
 
   // Handle Route Booking initiation
   const handleOpenBooking = (route?: BusRoute) => {
@@ -145,51 +177,50 @@ export default function App() {
 
         {/* Action Pills */}
         <div className="flex items-center gap-2 text-xs">
-          {/* Spring Boot Backend trigger */}
-          <button
-            type="button"
-            onClick={() => setIsSpringBootOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Code2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Java Spring Boot & Thymeleaf</span>
-          </button>
+          {isLoggedIn && (
+            <>
+              {/* Spring Boot Backend trigger */}
+              <button
+                type="button"
+                onClick={() => setIsSpringBootOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Code2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Java Spring Boot & Thymeleaf</span>
+              </button>
 
-          {/* Official Fall-2026 Schedule */}
-          <button
-            type="button"
-            onClick={() => setIsScheduleOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Calendar className="w-3.5 h-3.5 text-blue-400" />
-            <span className="hidden sm:inline">Fall-2026 Schedule</span>
-          </button>
+              {/* Official Fall-2026 Schedule */}
+              <button
+                type="button"
+                onClick={() => setIsScheduleOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5 text-blue-400" />
+                <span className="hidden sm:inline">Fall-2026 Schedule</span>
+              </button>
 
-          {/* Login/Logout Switcher */}
-          <button
-            type="button"
-            onClick={() => setIsLoggedIn(!isLoggedIn)}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold transition-colors cursor-pointer"
-          >
-            {isLoggedIn ? 'Test Login Screen' : 'Back to App'}
-          </button>
+              <button type="button" onClick={handleLogout} className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold transition-colors cursor-pointer">
+                Logout
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Main App Canvas */}
       <div className="flex-1 flex items-center justify-center p-0 sm:p-4 overflow-x-hidden">
-        {viewMode === 'mobile' ? (
+        {isCheckingSession ? (
+          <div className="flex items-center gap-3 text-sm text-slate-300" role="status">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-500 border-t-blue-400" />
+            Checking your session…
+          </div>
+        ) : viewMode === 'mobile' ? (
           /* Mobile App Frame View matching photos */
           <div className="w-full flex justify-center py-2">
             <MobileFrame>
               {!isLoggedIn ? (
                 <LoginPage
-                  initialUser={user}
-                  onLoginSuccess={(loggedInUser) => {
-                    setUser(loggedInUser);
-                    setIsLoggedIn(true);
-                    setMobileTab('home');
-                  }}
+                  onLoginSuccess={handleLoginSuccess}
                 />
               ) : (
                 <div className="relative w-full h-full flex flex-col justify-between overflow-y-auto no-scrollbar">
@@ -199,7 +230,7 @@ export default function App() {
                       user={user}
                       routes={routes}
                       tracking={tracking}
-                      tickets={tickets}
+                      currentPasses={currentPasses}
                       notices={notices}
                       onNavigate={(tab) => setMobileTab(tab)}
                       onSelectRoute={(r) => {
@@ -232,7 +263,7 @@ export default function App() {
 
                   {mobileTab === 'tickets' && (
                     <MyTicketsPage
-                      tickets={tickets}
+                      currentPasses={currentPasses}
                       onBack={() => setMobileTab('home')}
                       onViewTicket={(t) => setActiveTicketModal(t)}
                       onBookNew={() => handleOpenBooking()}
@@ -243,10 +274,29 @@ export default function App() {
                   {mobileTab === 'profile' && (
                     <ProfilePage
                       user={user}
-                      onLogout={() => setIsLoggedIn(false)}
+                      onLogout={handleLogout}
                       onNavigateTickets={() => setMobileTab('tickets')}
                       onOpenSpringBoot={() => setIsSpringBootOpen(true)}
-                      onUpdateUser={(updated) => setUser(updated)}
+                      onUpdateUser={async (updated) => {
+                        const response = await fetch('/api/v1/auth/profile', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            name: updated.name,
+                            studentId: updated.studentId,
+                            picture: updated.avatarUrl,
+                            phone: updated.phone,
+                            preferredRoute: updated.preferredRoute,
+                          }),
+                        });
+                        const result = await response.json().catch(() => ({}));
+                        if (!response.ok) throw new Error(result.error || 'Could not save your profile.');
+                        setUser({
+                          ...result,
+                          avatarUrl: result.avatarUrl || INITIAL_USER.avatarUrl,
+                          walletBalance: updated.walletBalance,
+                        });
+                      }}
                     />
                   )}
 
@@ -254,7 +304,7 @@ export default function App() {
                   <BottomNav
                     activeTab={mobileTab}
                     onSelectTab={(tab) => setMobileTab(tab)}
-                    ticketCount={tickets.filter((t) => t.bookingType === 'Upcoming').length}
+                    ticketCount={currentPasses.length}
                   />
 
                   {/* Mobile Drawer */}
@@ -367,11 +417,15 @@ export default function App() {
           </div>
         ) : (
           /* Web Portal View (Complete desktop management dashboard) */
-          <WebPortalView
+          !isLoggedIn ? (
+            <div className="w-full max-w-2xl py-8">
+              <LoginPage onLoginSuccess={handleLoginSuccess} />
+            </div>
+          ) : <WebPortalView
             user={user}
             routes={routes}
             tracking={tracking}
-            tickets={tickets}
+            currentPasses={currentPasses}
             notices={notices}
             onOpenBookingModal={handleOpenBooking}
             onOpenScheduleModal={() => setIsScheduleOpen(true)}
@@ -398,6 +452,7 @@ export default function App() {
         <SeatBookingModal
           initialRoute={selectedRouteForBooking}
           routes={routes}
+          tickets={tickets}
           user={user}
           onClose={() => setIsBookingOpen(false)}
           onConfirmBooking={handleConfirmBooking}

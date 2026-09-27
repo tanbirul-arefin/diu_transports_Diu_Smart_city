@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Ticket as TicketIcon, Calendar, Clock, MapPin, Plus, CheckCircle2, QrCode, AlertCircle, XCircle } from 'lucide-react';
+import React from 'react';
+import { ArrowLeft, Ticket as TicketIcon, Plus } from 'lucide-react';
 import { Ticket } from '../types';
 import { QRCodeView } from './QRCodeView';
 
 interface MyTicketsPageProps {
-  tickets: Ticket[];
+  currentPasses: Ticket[];
   onBack: () => void;
   onViewTicket: (ticket: Ticket) => void;
   onBookNew: () => void;
@@ -12,16 +12,12 @@ interface MyTicketsPageProps {
 }
 
 export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({
-  tickets,
+  currentPasses,
   onBack,
   onViewTicket,
   onBookNew,
   onCancelTicket,
 }) => {
-  const [activeTab, setActiveTab] = useState<'Upcoming' | 'History' | 'Cancelled'>('Upcoming');
-
-  const filteredTickets = tickets.filter((t) => t.bookingType === activeTab);
-
   return (
     <div className="min-h-full bg-slate-50 text-slate-800 pb-20">
       {/* Top Header matching Figma Screen 5 */}
@@ -35,7 +31,7 @@ export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-base font-extrabold text-slate-900">My Tickets</h1>
+          <h1 className="text-base font-extrabold text-slate-900">Current Passes</h1>
         </div>
 
         <button
@@ -49,52 +45,30 @@ export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Tab Switcher matching Figma Screen 5: Upcoming | History | Cancelled */}
-        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-200/80 rounded-2xl">
-          {(['Upcoming', 'History', 'Cancelled'] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-                activeTab === tab
-                  ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Tickets List matching Figma Screen 5 */}
+        {/* Current passes only */}
         <div className="space-y-3.5">
-          {filteredTickets.length === 0 ? (
+          {currentPasses.length === 0 ? (
             <div className="bg-white rounded-2xl p-8 text-center border border-slate-200/80 shadow-xs space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
                 <TicketIcon className="w-6 h-6" />
               </div>
               <h3 className="text-sm font-bold text-slate-800">
-                No {activeTab} Tickets Found
+                No Current Passes
               </h3>
               <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                {activeTab === 'Upcoming'
-                  ? 'You do not have any active upcoming bus passes. Reserve your seat for regular DSC trips.'
-                  : `You have no ${activeTab.toLowerCase()} transport records.`}
+                You do not have any active bus passes. Reserve a seat for your next trip.
               </p>
-              {activeTab === 'Upcoming' && (
-                <button
-                  type="button"
-                  onClick={onBookNew}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5"
-                >
-                  <Plus className="w-4 h-4" />
-                  Book Now
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={onBookNew}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                Book Now
+              </button>
             </div>
           ) : (
-            filteredTickets.map((ticket) => (
+            currentPasses.map((ticket) => (
               <div
                 key={ticket.id}
                 className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden hover:border-blue-300 transition-all"

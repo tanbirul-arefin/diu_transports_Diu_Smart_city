@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { BusRoute, BusTracking } from '../types';
+import { buildBusTracking, getAvailableBuses } from '../data/busTracking';
 
 interface LiveTrackingPageProps {
   tracking: BusTracking;
@@ -30,7 +31,7 @@ export const LiveTrackingPage: React.FC<LiveTrackingPageProps> = ({
   onUpdateTracking,
 }) => {
   const [isSimulating, setIsSimulating] = useState(true);
-  const [selectedBusId, setSelectedBusId] = useState(tracking.busId);
+  const availableBuses = getAvailableBuses(routes);
 
   // Live simulation tick: every 3 seconds advance progress or coordinates
   useEffect(() => {
@@ -97,7 +98,7 @@ export const LiveTrackingPage: React.FC<LiveTrackingPageProps> = ({
             </h1>
             <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-              GPS Live Satellite Lock
+              Demo GPS Tracking
             </p>
           </div>
         </div>
@@ -110,6 +111,30 @@ export const LiveTrackingPage: React.FC<LiveTrackingPageProps> = ({
         >
           <RotateCw className="w-4 h-4" />
         </button>
+      </div>
+
+      <div className="px-3 py-2 bg-white border-b border-slate-200">
+        <label htmlFor="mobile-tracking-bus" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+          Available buses ({availableBuses.length})
+        </label>
+        <select
+          id="mobile-tracking-bus"
+          value={tracking.busNumber}
+          onChange={(event) => {
+            const busIndex = availableBuses.findIndex((bus) => bus.busNumber === event.target.value);
+            const selectedBus = availableBuses[busIndex];
+            if (selectedBus) {
+              onUpdateTracking(buildBusTracking(selectedBus, tracking, busIndex));
+            }
+          }}
+          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {availableBuses.map(({ busNumber, route }) => (
+            <option key={busNumber} value={busNumber}>
+              {busNumber} - {route.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Interactive Map Visualizer matching Figma Screen 4 */}
@@ -259,6 +284,17 @@ export const LiveTrackingPage: React.FC<LiveTrackingPageProps> = ({
           </span>
         </div>
 
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+            <div className="text-[10px] text-slate-400 font-bold uppercase">Current Status</div>
+            <div className="text-xs font-bold text-emerald-700 mt-0.5">{tracking.status}</div>
+          </div>
+          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+            <div className="text-[10px] text-slate-400 font-bold uppercase">Destination ETA</div>
+            <div className="text-xs font-bold text-blue-700 mt-0.5">{tracking.nextStopEtaMinutes} min</div>
+          </div>
+        </div>
+
         {/* Live Timeline matching Figma Screen 4 */}
         <div className="space-y-3.5 py-1">
           {tracking.stops.map((stop, index) => {
@@ -335,13 +371,15 @@ export const LiveTrackingPage: React.FC<LiveTrackingPageProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5">
-            <a
-              href={`tel:${tracking.driverPhone}`}
-              className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-              title="Call Driver"
-            >
-              <Phone className="w-4 h-4" />
-            </a>
+            {tracking.driverPhone !== 'Not provided' && (
+              <a
+                href={`tel:${tracking.driverPhone}`}
+                className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                title="Call Driver"
+              >
+                <Phone className="w-4 h-4" />
+              </a>
+            )}
             <button
               type="button"
               onClick={handleNextStop}

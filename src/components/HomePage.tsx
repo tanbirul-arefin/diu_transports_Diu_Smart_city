@@ -21,7 +21,7 @@ interface HomePageProps {
   user: UserProfile;
   routes: BusRoute[];
   tracking: BusTracking;
-  tickets: Ticket[];
+  currentPasses: Ticket[];
   notices: TransportNotice[];
   onNavigate: (tab: 'home' | 'routes' | 'tracking' | 'tickets' | 'profile') => void;
   onSelectRoute: (route: BusRoute) => void;
@@ -35,7 +35,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   user,
   routes,
   tracking,
-  tickets,
+  currentPasses,
   notices,
   onNavigate,
   onSelectRoute,
@@ -47,7 +47,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<BusRoute[] | null>(null);
 
-  const upcomingTicket = tickets.find((t) => t.bookingType === 'Upcoming');
+  const upcomingTicket = currentPasses[0];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +123,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                 ● Live Fleet Active
               </span>
             </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
+          <img src={user.avatarUrl} alt={user.name} className="h-11 w-11 rounded-full object-cover ring-2 ring-blue-100" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-slate-900">{user.name}</p>
+            <p className="truncate font-mono text-[11px] text-slate-500">Student ID: {user.studentId}</p>
           </div>
         </div>
 

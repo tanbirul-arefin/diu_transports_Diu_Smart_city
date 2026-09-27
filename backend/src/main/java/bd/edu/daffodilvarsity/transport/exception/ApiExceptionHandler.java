@@ -20,6 +20,6 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException exception) {
         return ResponseEntity.badRequest().body(Map.of(
-                "timestamp", Instant.now(), "status", 400, "error", "Invalid booking request"));
+                "timestamp", Instant.now(), "status", 400, "error", "Please check the information you entered"));
     }
 }
