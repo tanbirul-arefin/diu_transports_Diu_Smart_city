@@ -6,5 +6,5 @@ import jakarta.validation.constraints.Size;
 
 public record LoginRequest(
         @NotBlank @Email @Size(max = 254) String email,
-        @NotBlank @Size(max = 40) String studentId,
+        @Size(max = 40) String studentId,
         @NotBlank @Size(max = 72) String password) {}

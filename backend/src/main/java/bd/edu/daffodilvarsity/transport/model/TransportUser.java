@@ -69,4 +69,8 @@ public class TransportUser {
     public void attachLegacyStudentId(String studentId) {
         this.studentId = studentId;
     }
+
+    public void updatePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 }

@@ -111,7 +111,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isRegistering
           ? { name, username, studentId, email, password, picture }
-          : { email, studentId, password }),
+          : { email, password }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Could not sign in. Please try again.');
@@ -137,7 +137,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-full flex flex-col justify-center bg-gradient-to-b from-slate-50 via-sky-50/50 to-slate-100 p-5 text-slate-800 sm:p-7">
+    <div className="min-h-full flex flex-col justify-center bg-gradient-to-b from-slate-50 via-sky-50/50 to-slate-100 p-4 text-slate-800 sm:p-7">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
           <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-700 text-white shadow-lg shadow-blue-900/20">
@@ -151,7 +151,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <h2 className="text-lg font-bold text-slate-900">{isRegistering ? 'Create your account' : 'Welcome back'}</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {isRegistering ? 'Use your DIU email and student information.' : 'Sign in with your DIU email, Student ID, and password.'}
+            {isRegistering ? 'Use your DIU email and student information.' : 'Sign in with your DIU email and password.'}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
@@ -186,13 +186,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </span>
               {isRegistering && <span className="block text-[11px] font-normal text-slate-500">Registration requires an email ending in @diu.edu.bd.</span>}
             </label>
-
-            {!isRegistering && (
-              <label className="block space-y-1.5 text-xs font-semibold text-slate-700">
-                Student ID
-                <input required maxLength={40} autoComplete="username" value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="Your DIU student ID" className={inputClassName} />
-              </label>
-            )}
 
             {isRegistering && (
               <div className="space-y-2">

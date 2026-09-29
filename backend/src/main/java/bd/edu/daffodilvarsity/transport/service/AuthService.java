@@ -46,18 +46,20 @@ public class AuthService {
 
     public AuthUserResponse login(LoginRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
-        String studentId = normalizeStudentId(request.studentId());
         TransportUser user = users.findByEmail(email)
                 .filter(candidate -> passwordEncoder.matches(request.password(), candidate.getPasswordHash()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email, student ID, or password is incorrect"));
-        if (user.getStudentId() == null || user.getStudentId().isBlank()) {
-            if (users.existsByStudentId(studentId)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "This student ID is already linked to another account");
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email or password is incorrect"));
+        if (request.studentId() != null && !request.studentId().isBlank()) {
+            String studentId = normalizeStudentId(request.studentId());
+            if (user.getStudentId() == null || user.getStudentId().isBlank()) {
+                if (users.existsByStudentId(studentId)) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "This student ID is already linked to another account");
+                }
+                user.attachLegacyStudentId(studentId);
+                users.save(user);
+            } else if (!studentId.equals(user.getStudentId())) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email or password is incorrect");
             }
-            user.attachLegacyStudentId(studentId);
-            users.save(user);
-        } else if (!studentId.equals(user.getStudentId())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email, student ID, or password is incorrect");
         }
         return toResponse(user);
     }

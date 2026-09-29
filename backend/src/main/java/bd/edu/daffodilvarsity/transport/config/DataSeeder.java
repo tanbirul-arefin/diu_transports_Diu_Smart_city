@@ -1,14 +1,42 @@
 package bd.edu.daffodilvarsity.transport.config;
 
 import bd.edu.daffodilvarsity.transport.model.BusRoute;
+import bd.edu.daffodilvarsity.transport.model.TransportUser;
 import bd.edu.daffodilvarsity.transport.repository.BusRouteRepository;
+import bd.edu.daffodilvarsity.transport.repository.TransportUserRepository;
 import java.util.List;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 public class DataSeeder {
+        @Bean
+        @Profile("local")
+        CommandLineRunner seedDemoUsers(TransportUserRepository repository, PasswordEncoder passwordEncoder) {
+                return args -> {
+                        for (String studentId : List.of("251-15-863", "251-15-363", "251-15-265", "251-15-094")) {
+                                String email = studentId + "@diu.edu.bd";
+                                String username = studentId.replace('-', '.');
+                                TransportUser user = repository.findByEmail(email).orElse(null);
+                                if (user == null) {
+                                        if (repository.existsByUsername(username) || repository.existsByStudentId(studentId)) {
+                                                continue;
+                                        }
+                                        user = new TransportUser("demo-" + studentId, email, username,
+                                                        "DIU Student " + studentId, studentId, "", null);
+                                } else if ((user.getStudentId() == null || user.getStudentId().isBlank())
+                                                && !repository.existsByStudentId(studentId)) {
+                                        user.attachLegacyStudentId(studentId);
+                                }
+                                user.updatePasswordHash(passwordEncoder.encode("12345678"));
+                                repository.save(user);
+                        }
+                };
+        }
+
     @Bean
     CommandLineRunner seedRoutes(BusRouteRepository repository) {
         return args -> {

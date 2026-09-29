@@ -7,7 +7,7 @@ interface MobileFrameProps {
 
 export const MobileFrame: React.FC<MobileFrameProps> = ({ children }) => {
   return (
-    <div className="relative mx-auto my-3 w-full max-w-[390px] h-[780px] bg-slate-900 rounded-[48px] p-3 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] ring-1 ring-slate-800 border-[6px] border-slate-800 flex flex-col select-none">
+    <div className="relative mx-auto my-3 w-full max-w-[390px] h-[min(780px,calc(100dvh-100px))] bg-slate-900 rounded-[48px] p-3 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] ring-1 ring-slate-800 border-[6px] border-slate-800 flex flex-col select-none">
       {/* Speaker / Dynamic Island Top Bar */}
       <div className="absolute top-4 inset-x-0 z-40 flex items-center justify-between px-7 text-[11px] font-bold text-slate-800 pointer-events-none">
         <span>9:41</span>

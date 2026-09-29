@@ -137,6 +137,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-blue-600 selection:text-white">
       {/* Universal Top Control Bar (Website + App Switcher & Spring Boot architecture toggle) */}
+      {isLoggedIn && (
       <div className="w-full bg-slate-900 border-b border-slate-800 px-4 py-2.5 z-40 flex flex-wrap items-center justify-between gap-3 shadow-md">
         {/* Brand & Dual View Switcher */}
         <div className="flex items-center gap-3">
@@ -206,24 +207,24 @@ export default function App() {
           )}
         </div>
       </div>
+      )}
 
       {/* Main App Canvas */}
-      <div className="flex-1 flex items-center justify-center p-0 sm:p-4 overflow-x-hidden">
+      <div className="flex-1 min-h-0 flex items-center justify-center p-0 sm:p-4 overflow-x-hidden overflow-y-auto">
         {isCheckingSession ? (
           <div className="flex items-center gap-3 text-sm text-slate-300" role="status">
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-500 border-t-blue-400" />
             Checking your session…
           </div>
+        ) : !isLoggedIn ? (
+          <div className="flex min-h-full w-full max-w-2xl flex-col justify-center">
+            <LoginPage onLoginSuccess={handleLoginSuccess} />
+          </div>
         ) : viewMode === 'mobile' ? (
           /* Mobile App Frame View matching photos */
           <div className="w-full flex justify-center py-2">
             <MobileFrame>
-              {!isLoggedIn ? (
-                <LoginPage
-                  onLoginSuccess={handleLoginSuccess}
-                />
-              ) : (
-                <div className="relative w-full h-full flex flex-col justify-between overflow-y-auto no-scrollbar">
+              <div className="relative w-full h-full flex flex-col justify-between overflow-y-auto no-scrollbar">
                   {/* Mobile Screen Router */}
                   {mobileTab === 'home' && (
                     <HomePage
@@ -411,17 +412,12 @@ export default function App() {
                       </div>
                     </div>
                   )}
-                </div>
-              )}
+              </div>
             </MobileFrame>
           </div>
         ) : (
           /* Web Portal View (Complete desktop management dashboard) */
-          !isLoggedIn ? (
-            <div className="w-full max-w-2xl py-8">
-              <LoginPage onLoginSuccess={handleLoginSuccess} />
-            </div>
-          ) : <WebPortalView
+          <WebPortalView
             user={user}
             routes={routes}
             tracking={tracking}
