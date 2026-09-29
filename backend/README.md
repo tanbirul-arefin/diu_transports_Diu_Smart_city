@@ -23,6 +23,22 @@ Alternatively, run `start.bat` from this directory. The backend runs at `http://
 
 The React development app runs separately at `http://localhost:3000`. Start it from the repository root with `npm install` (first run only), then `npm run dev`. The API allows requests from this origin.
 
+## Email Verification
+
+Account registration sends a six-digit code to an address ending in `@diu.edu.bd`. Configure an SMTP relay before starting the backend; without it, code delivery fails closed and registration stays disabled. Set these environment variables in the shell that starts Spring Boot:
+
+```powershell
+$env:MAIL_HOST = "smtp.resend.com"
+$env:MAIL_PORT = "587"
+$env:MAIL_USERNAME = "resend"
+$env:MAIL_FROM = "<sender on your verified domain>"
+$secret = Read-Host "Resend API key" -AsSecureString
+$env:MAIL_PASSWORD = [System.Net.NetworkCredential]::new("", $secret).Password
+.\mvnw.cmd spring-boot:run
+```
+
+Create a Resend account, verify a domain you control, and create an API key with email-sending permission. The `MAIL_FROM` address must use that verified domain. Resend SMTP details: [Send emails with SMTP](https://resend.com/docs/send-with-smtp). Alternatively, use SMTP credentials issued by the DIU mail administrator. Never commit provider credentials. Verification codes expire after 10 minutes.
+
 ## Project Structure
 
 ```text

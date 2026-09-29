@@ -1,201 +1,255 @@
 import React, { useState } from 'react';
-import { Bus, User, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Bus, Eye, EyeOff, ImagePlus, Lock, Mail, User } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface LoginPageProps {
   onLoginSuccess: (user: UserProfile) => void;
-  initialUser: UserProfile;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, initialUser }) => {
-  const [diuId, setDiuId] = useState('262-40-017');
-  const [password, setPassword] = useState('diu@fall2026');
+const inputClassName = 'w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20';
+
+export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [picture, setPicture] = useState('');
+  const [pictureName, setPictureName] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isCodeRequested, setIsCodeRequested] = useState(false);
+  const [isCodeSent, setIsCodeSent] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!diuId.trim()) {
-      setError('Please enter your DIU Student or Faculty ID');
+  const handlePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please choose an image file.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Choose a profile picture smaller than 2 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPicture(typeof reader.result === 'string' ? reader.result : '');
+      setPictureName(file.name);
+      setError('');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const sendVerificationCode = async () => {
+    setError('');
+    setNotice('');
+    if (!email.trim().toLowerCase().endsWith('@diu.edu.bd')) {
+      setError('Use your @diu.edu.bd email address.');
+      return;
+    }
+    setIsCodeRequested(true);
+    setIsCodeSent(false);
+    setIsEmailVerified(false);
+    setIsSendingCode(true);
+    try {
+      const response = await fetch('/api/v1/auth/email-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not send the verification code.');
+      setIsCodeSent(true);
+      setVerificationCode('');
+      setNotice('A verification code was sent to your DIU email. It is valid for 10 minutes.');
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'Could not send the verification code.');
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const verifyEmail = async () => {
+    setError('');
+    setNotice('');
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/v1/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: verificationCode }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'That code could not be verified.');
+      setIsEmailVerified(true);
+      setNotice('DIU email verified. You can create your account now.');
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : 'That code could not be verified.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    if (isRegistering && !isEmailVerified) {
+      setError('Verify your @diu.edu.bd email before creating your account.');
       return;
     }
     setIsLoading(true);
-    setError('');
-
-    setTimeout(() => {
-      setIsLoading(false);
-      onLoginSuccess({
-        ...initialUser,
-        studentId: diuId,
+    try {
+      const response = await fetch(`/api/v1/auth/${isRegistering ? 'register' : 'login'}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(isRegistering
+          ? { name, username, studentId, email, password, picture }
+          : { email, studentId, password }),
       });
-    }, 450);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not sign in. Please try again.');
+      onLoginSuccess(result as UserProfile);
+    } catch (submitError) {
+      setError(submitError instanceof TypeError
+        ? 'Could not connect to the server. Please make sure the transport backend is running.'
+        : submitError instanceof Error ? submitError.message : 'Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleQuickFill = (id: string, name: string, dept: string) => {
-    setDiuId(id);
-    setPassword('diu@2026');
+  const switchMode = () => {
+    setIsRegistering((current) => !current);
     setError('');
+    setNotice('');
+    setPassword('');
+    setIsCodeRequested(false);
+    setIsCodeSent(false);
+    setIsEmailVerified(false);
+    setVerificationCode('');
   };
 
   return (
-    <div className="min-h-full flex flex-col justify-between bg-gradient-to-b from-slate-50 via-sky-50/40 to-slate-100 p-6 text-slate-800">
-      {/* Top Graphic / Branding matching Figma screen 1 */}
-      <div className="pt-6 flex flex-col items-center text-center">
-        {/* DIU Transports Logo Badge */}
-        <div className="relative mb-4 flex items-center justify-center">
-          <div className="w-20 h-20 bg-blue-600 rounded-3xl shadow-xl shadow-blue-500/25 flex items-center justify-center text-white ring-4 ring-blue-100">
-            <Bus className="w-10 h-10 text-white" />
+    <div className="min-h-full flex flex-col justify-center bg-gradient-to-b from-slate-50 via-sky-50/50 to-slate-100 p-5 text-slate-800 sm:p-7">
+      <div className="mx-auto w-full max-w-md">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-700 text-white shadow-lg shadow-blue-900/20">
+            <Bus className="h-8 w-8" />
           </div>
-          <div className="absolute -bottom-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-            Fall 2026
-          </div>
+          <p className="text-xs font-bold uppercase text-blue-700">Daffodil International University</p>
+          <h1 className="mt-1 text-2xl font-extrabold text-slate-950">DIU Transports</h1>
+          <p className="mt-1 text-sm text-slate-500">Your official ride, every day</p>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100/70 border border-blue-200/80 rounded-full text-blue-700 text-xs font-semibold mb-2">
-          <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-          Daffodil International University
-        </div>
-
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-          DIU TRANSPORTS
-        </h1>
-        <p className="text-xs text-slate-500 mt-1 font-medium">
-          Your official ride, every day
-        </p>
-      </div>
-
-      {/* Main Form Box */}
-      <div className="my-auto py-4">
-        <div className="bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-slate-200/80">
-          <h2 className="text-base font-bold text-slate-800 mb-1">
-            Welcome Back
-          </h2>
-          <p className="text-xs text-slate-500 mb-5">
-            Sign in with your DIU Student or Employee credentials
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <h2 className="text-lg font-bold text-slate-900">{isRegistering ? 'Create your account' : 'Welcome back'}</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {isRegistering ? 'Use your DIU email and student information.' : 'Sign in with your DIU email, Student ID, and password.'}
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* DIU ID */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                DIU ID
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <User className="w-4 h-4" />
-                </div>
-                <input
-                  type="text"
-                  value={diuId}
-                  onChange={(e) => setDiuId(e.target.value)}
-                  placeholder="Enter your DIU ID (e.g. 262-40-017)"
-                  className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder:text-slate-400 font-medium"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Password
+          <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+            {isRegistering && (
+              <>
+                <label className="block space-y-1.5 text-xs font-semibold text-slate-700">
+                  Full name
+                  <span className="relative block">
+                    <User className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                    <input required maxLength={80} autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" className={`${inputClassName} pl-10`} />
+                  </span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => alert('For student password recovery, please contact DIU IT Support or Transport Office (Ashulia DSC).')}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder:text-slate-400"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-xs font-medium text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
-                {error}
-              </p>
+                <label className="block space-y-1.5 text-xs font-semibold text-slate-700">
+                  Username
+                  <input required minLength={3} maxLength={32} pattern="[a-zA-Z0-9._\-]+" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Choose a username" className={inputClassName} />
+                </label>
+              </>
             )}
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer text-sm"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Login</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+            {isRegistering && (
+              <label className="block space-y-1.5 text-xs font-semibold text-slate-700">
+                Student ID
+                <input required maxLength={40} autoComplete="off" value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="Your DIU student ID" className={inputClassName} />
+              </label>
+            )}
+
+            <label className="block space-y-1.5 text-xs font-semibold text-slate-700">
+              DIU email
+              <span className="relative block">
+                <Mail className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                <input required type="email" pattern={isRegistering ? ".+@diu[.]edu[.]bd" : undefined} maxLength={254} autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setIsEmailVerified(false); setIsCodeRequested(false); setIsCodeSent(false); setVerificationCode(''); setNotice(''); }} placeholder="name@diu.edu.bd" className={`${inputClassName} pl-10`} />
+              </span>
+              {isRegistering && <span className="block text-[11px] font-normal text-slate-500">Registration requires an email ending in @diu.edu.bd.</span>}
+            </label>
+
+            {!isRegistering && (
+              <label className="block space-y-1.5 text-xs font-semibold text-slate-700">
+                Student ID
+                <input required maxLength={40} autoComplete="username" value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="Your DIU student ID" className={inputClassName} />
+              </label>
+            )}
+
+            {isRegistering && (
+              <div className="space-y-2">
+                <button type="button" disabled={isSendingCode || !email} onClick={sendVerificationCode} className="w-full rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs font-bold text-blue-800 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50">
+                  {isSendingCode ? 'Sending code…' : isCodeRequested ? 'Resend verification code' : 'Send verification code'}
+                </button>
+                {isCodeRequested && (
+                  <div className="flex gap-2">
+                    <input aria-label="Verification code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit code" className={`${inputClassName} min-w-0`} />
+                    <button type="button" disabled={!isCodeSent || isLoading || verificationCode.length !== 6} onClick={verifyEmail} className="shrink-0 rounded-xl bg-slate-800 px-3 text-xs font-bold text-white hover:bg-slate-700 disabled:opacity-50">
+                      Verify
+                    </button>
+                  </div>
+                )}
+                {isCodeRequested && !isCodeSent && !isSendingCode && error && <p className="text-[11px] text-slate-500">The code field is ready, but no code was delivered. Email verification must be configured before you can continue.</p>}
+                {isEmailVerified && <p className="text-xs font-semibold text-emerald-700">DIU email verified</p>}
+              </div>
+            )}
+
+            <label className="block space-y-1.5 text-xs font-semibold text-slate-700">
+              Password
+              <span className="relative block">
+                <Lock className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                <input required minLength={isRegistering ? 8 : undefined} maxLength={72} type={showPassword ? 'text' : 'password'} autoComplete={isRegistering ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isRegistering ? 'At least 8 characters' : 'Your password'} className={`${inputClassName} pl-10 pr-11`} />
+                <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-700">
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </span>
+            </label>
+
+            {isRegistering && (
+              <div>
+                <span className="mb-1.5 block text-xs font-semibold text-slate-700">Profile picture</span>
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 hover:border-blue-400 hover:bg-blue-50/50">
+                  {picture ? <img src={picture} alt="Profile preview" className="h-11 w-11 rounded-full object-cover" /> : <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100 text-blue-700"><ImagePlus className="h-5 w-5" /></span>}
+                  <span className="min-w-0 flex-1 truncate text-xs text-slate-600">{pictureName || 'Choose a profile picture, up to 2 MB'}</span>
+                  <input required={!picture} type="file" accept="image/*" onChange={handlePictureChange} className="sr-only" />
+                </label>
+              </div>
+            )}
+
+            {notice && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">{notice}</p>}
+            {error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+
+            <button type="submit" disabled={isLoading || (isRegistering && !isEmailVerified)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">
+              {isLoading ? 'Please wait…' : isRegistering ? 'Create account' : 'Login'}
+              {!isLoading && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
-
-          {/* Quick Demo Pre-fill */}
-          <div className="mt-4 pt-3 border-t border-slate-100">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              One-Click Demo Profiles:
-            </p>
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('262-40-017', 'Ishrat Jahan Ahona', 'MCT')}
-                className="text-left p-2 rounded-lg bg-slate-50 hover:bg-blue-50 hover:border-blue-200 border border-slate-200 transition-colors text-[11px]"
-              >
-                <div className="font-bold text-slate-800">Ishrat (Photo ID)</div>
-                <div className="text-slate-500">262-40-017</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('251-15-863', 'DIU Student', 'CSE')}
-                className="text-left p-2 rounded-lg bg-slate-50 hover:bg-blue-50 hover:border-blue-200 border border-slate-200 transition-colors text-[11px]"
-              >
-                <div className="font-bold text-slate-800">User Email ID</div>
-                <div className="text-slate-500">251-15-863</div>
-              </button>
-            </div>
-          </div>
         </div>
-      </div>
 
-      {/* Footer link */}
-      <div className="text-center pt-2 pb-4">
-        <p className="text-xs text-slate-500">
-          Don't have an account?{' '}
-          <button
-            type="button"
-            onClick={() => alert('New students are registered automatically via DIU Student Portal. Contact DSC Transport Office: transport@diu.edu.bd')}
-            className="font-bold text-blue-600 hover:underline"
-          >
-            Contact Admin
+        <p className="mt-5 text-center text-sm text-slate-600">
+          {isRegistering ? 'Already have an account?' : "Don't have an account?"}{' '}
+          <button type="button" onClick={switchMode} className="font-bold text-blue-700 hover:text-blue-900">
+            {isRegistering ? 'Login' : 'Register'}
           </button>
         </p>
-        <div className="mt-2 text-[10px] text-slate-400">
-          Daffodil Smart City, Birulia, Savar, Dhaka
-        </div>
       </div>
     </div>
   );

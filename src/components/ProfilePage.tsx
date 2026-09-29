@@ -14,6 +14,7 @@ import {
   Wallet,
   CheckCircle2,
   Sparkles,
+  ImagePlus,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -22,7 +23,7 @@ interface ProfilePageProps {
   onLogout: () => void;
   onNavigateTickets: () => void;
   onOpenSpringBoot: () => void;
-  onUpdateUser: (user: UserProfile) => void;
+  onUpdateUser: (user: UserProfile) => Promise<void>;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
@@ -34,19 +35,49 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 }) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [editName, setEditName] = useState(user.name);
+  const [editStudentId, setEditStudentId] = useState(user.studentId);
+  const [editPicture, setEditPicture] = useState(user.avatarUrl);
+  const [editPictureName, setEditPictureName] = useState('');
   const [editPhone, setEditPhone] = useState(user.phone);
   const [editRoute, setEditRoute] = useState(user.preferredRoute);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
   const [topUpAmount, setTopUpAmount] = useState('200');
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateUser({
-      ...user,
-      name: editName,
-      phone: editPhone,
-      preferredRoute: editRoute,
-    });
-    setActiveModal(null);
+    setIsSavingProfile(true);
+    setProfileError('');
+    try {
+      await onUpdateUser({
+        ...user,
+        name: editName,
+        studentId: editStudentId,
+        avatarUrl: editPicture,
+        phone: editPhone,
+        preferredRoute: editRoute,
+      });
+      setActiveModal(null);
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : 'Could not save your profile.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleEditPicture = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith('image/') || file.size > 2 * 1024 * 1024) {
+      setProfileError('Choose an image smaller than 2 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setEditPicture(typeof reader.result === 'string' ? reader.result : user.avatarUrl);
+      setEditPictureName(file.name);
+      setProfileError('');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleTopUp = () => {
@@ -259,11 +290,35 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             <h3 className="text-sm font-extrabold text-slate-900">Edit Profile</h3>
             <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
               <div>
+                <label className="font-bold text-slate-700 block mb-1">Profile Picture</label>
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 p-2.5">
+                  <img src={editPicture} alt="Profile preview" className="h-10 w-10 rounded-full object-cover" />
+                  <span className="flex min-w-0 items-center gap-2 truncate text-slate-600">
+                    <ImagePlus className="h-4 w-4 shrink-0" />
+                    {editPictureName || 'Choose a new image (up to 2 MB)'}
+                  </span>
+                  <input type="file" accept="image/*" onChange={handleEditPicture} className="sr-only" />
+                </label>
+              </div>
+              <div>
                 <label className="font-bold text-slate-700 block mb-1">Full Name</label>
                 <input
                   type="text"
+                  required
+                  maxLength={80}
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
+                  className="w-full p-2.5 border border-slate-300 rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Student ID</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={40}
+                  value={editStudentId}
+                  onChange={(e) => setEditStudentId(e.target.value)}
                   className="w-full p-2.5 border border-slate-300 rounded-xl"
                 />
               </div>
@@ -285,6 +340,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   className="w-full p-2.5 border border-slate-300 rounded-xl"
                 />
               </div>
+              {profileError && <p role="alert" className="rounded-lg bg-rose-50 p-2 text-rose-700">{profileError}</p>}
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
@@ -295,9 +351,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-blue-600 text-white rounded-xl font-bold shadow"
+                  disabled={isSavingProfile}
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-xl font-bold shadow disabled:opacity-60"
                 >
-                  Save Changes
+                  {isSavingProfile ? 'Saving…' : 'Save Changes'}
                 </button>
               </div>
             </form>
